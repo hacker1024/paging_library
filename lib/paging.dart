@@ -75,19 +75,38 @@ class Pagination<T> extends StatefulWidget {
   final int semanticChildCount;
 
   @override
-  _PaginationState<T> createState() => _PaginationState<T>();
+  PaginationState<T> createState() => PaginationState<T>();
 }
 
-class _PaginationState<T> extends State<Pagination<T>> {
+class PaginationState<T> extends State<Pagination<T>> {
   final List<T> _list = List();
   bool _isLoading = false;
   bool _isEndOfList = false;
+  bool _justCleared = false;
 
-  void fetchMore() {
+  void reset() {
+    setState(() {
+      _list.clear();
+      _isLoading = false;
+      _isEndOfList = false;
+      _justCleared = true;
+    });
+  }
+
+  void _fetchMore() {
+    print('\n\n\n$_isLoading$_isEndOfList$_justCleared');
+    _justCleared = false;
     if (!_isLoading) {
       _isLoading = true;
       widget.pageBuilder(_list.length).then((list) {
         _isLoading = false;
+
+        // Check if the list was cleared while loading - if it was, do nothing.
+        if (_justCleared) {
+          _justCleared = false;
+          return;
+        }
+
         if (list.isEmpty) {
           _isEndOfList = true;
         }
@@ -113,7 +132,7 @@ class _PaginationState<T> extends State<Pagination<T>> {
   @override
   void initState() {
     super.initState();
-    fetchMore();
+    _fetchMore();
   }
 
   @override
@@ -135,15 +154,15 @@ class _PaginationState<T> extends State<Pagination<T>> {
         if (position < _list.length) {
           return widget.itemBuilder(position, _list.length, _list[position]);
         } else if (position == _list.length && !_isEndOfList) {
-          fetchMore();
-          return widget.progress ?? defaultLoading();
+          _fetchMore();
+          return widget.progress ?? _defaultLoading();
         }
         return null;
       },
     );
   }
 
-  Widget defaultLoading() {
+  Widget _defaultLoading() {
     return Align(
       child: SizedBox(
         height: 40,
